@@ -1,0 +1,32 @@
+[
+  {
+    "id": "5e7d43ac-015d-4741-837a-d96716021f06",
+    "created_at": "2026-10-02T19:37:28.554Z",
+    "updated_at": "2026-10-02T19:37:31.277Z",
+    "published": false,
+    "views": 0,
+    "title": "محاضرة محدثة",
+    "description": "اختبار نهائي",
+    "audio_url": null,
+    "youtube_url": null,
+    "media_url": null,
+    "duration": null,
+    "category": null,
+    "tags": []
+  },
+  {
+    "id": "4f7884f6-d3f7-44cf-aff2-263fadff1a02",
+    "created_at": "2026-10-02T19:25:22.755Z",
+    "updated_at": "2026-10-02T19:25:22.755Z",
+    "published": true,
+    "views": 0,
+    "title": "محاضرة اختبار",
+    "description": "وصف اختبار",
+    "audio_url": null,
+    "youtube_url": null,
+    "media_url": null,
+    "duration": null,
+    "category": null,
+    "tags": []
+  }
+]

@@ -120,6 +120,23 @@ export default function AdminPage() {
     }
   }, []);
 
+  const refreshAllData = useCallback(async () => {
+    const statsRes = await fetch('/api/admin/stats');
+    if (statsRes.ok) {
+      const statsData = await statsRes.json();
+      setStats(statsData);
+    }
+    await Promise.all(
+      (["lectures", "sermons", "books", "articles"] as TableName[]).map(async (t) => {
+        const res = await fetch(`/api/admin/data?table=${t}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTableData((prev) => ({ ...prev, [t]: data.data }));
+        }
+      })
+    );
+  }, []);
+
   useEffect(() => {
     fetch("/api/admin/check")
       .then((r) => r.json())
@@ -262,7 +279,7 @@ export default function AdminPage() {
       {loading ? (
         <p style={{ textAlign: "center", color: "#666", fontSize: "1.1rem" }}>جاري التحميل...</p>
       ) : activeTab === "dashboard" ? (
-        <DashboardView stats={stats} />
+        <DashboardView stats={stats} setStats={setStats} setTableData={setTableData} />
       ) : (
         <TableView
           table={activeTab}
@@ -271,13 +288,23 @@ export default function AdminPage() {
           onAdd={() => openAddModal(activeTab)}
           onEdit={(item) => openEditModal(activeTab, item)}
           onDelete={(id) => handleDelete(activeTab, id)}
+          setStats={setStats}
+          setTableData={setTableData}
         />
       )}
     </div>
   );
 }
 
-function DashboardView({ stats }: { stats: StatsData | null }) {
+function DashboardView({
+  stats,
+  setStats,
+  setTableData,
+}: {
+  stats: StatsData | null;
+  setStats: React.Dispatch<React.SetStateAction<StatsData | null>>;
+  setTableData: React.Dispatch<React.SetStateAction<Record<TableName, unknown[]>>>;
+}) {
   if (!stats) {
     return <p style={{ textAlign: "center", color: "#666" }}>لا توجد بيانات</p>;
   }
@@ -317,6 +344,71 @@ function DashboardView({ stats }: { stats: StatsData | null }) {
       ) : (
         <p style={emptyStyle}>لا توجد إضافات بعد</p>
       )}
+
+      <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(201, 168, 76, 0.2)' }}>
+        <h2 style={sectionTitleStyle}>نسخ احتياطي</h2>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+          <a
+            href='/api/admin/export'
+            style={{
+              ...addBtnStyle,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            تصدير البيانات (JSON)
+          </a>
+          <label style={{ ...addBtnStyle, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            استيراد البيانات
+            <input
+              type='file'
+              accept='.json'
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const text = await file.text();
+                try {
+                  const data = JSON.parse(text);
+                  const res = await fetch('/api/admin/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data, mode: 'merge' }),
+                  });
+                  if (res.ok) {
+                    alert('تم الاستيراد بنجاح');
+                    const statsRes = await fetch('/api/admin/stats');
+                    if (statsRes.ok) {
+                      const statsData = await statsRes.json();
+                      setStats(statsData);
+                    }
+                    await Promise.all(
+                      (["lectures", "sermons", "books", "articles"] as TableName[]).map(async (t) => {
+                        const res2 = await fetch(`/api/admin/data?table=${t}`);
+                        if (res2.ok) {
+                          const data2 = await res2.json();
+                          setTableData((prev) => ({ ...prev, [t]: data2.data }));
+                        }
+                      })
+                    );
+                  } else {
+                    const err = await res.json();
+                    alert(`خطأ: ${err.error || 'فشل الاستيراد'}`);
+                  }
+                } catch {
+                  alert('ملف JSON غير صالح');
+                }
+              }}
+            />
+          </label>
+        </div>
+        <p style={{ ...emptyStyle, fontSize: '0.85rem', marginTop: '0.5rem' }}>
+          يتم تصدير جميع المحاضرات والخطب والكتب والمقالات في ملف JSON واحد.
+          الاستيراد يدمج البيانات مع الموجودة (وضع merge).
+        </p>
+      </div>
     </>
   );
 }
@@ -328,6 +420,8 @@ function TableView({
   onAdd,
   onEdit,
   onDelete,
+  setStats,
+  setTableData,
 }: {
   table: TableName;
   items: unknown[];
@@ -335,6 +429,8 @@ function TableView({
   onAdd: () => void;
   onEdit: (item: Record<string, unknown>) => void;
   onDelete: (id: string) => void;
+  setStats: React.Dispatch<React.SetStateAction<StatsData | null>>;
+  setTableData: React.Dispatch<React.SetStateAction<Record<TableName, unknown[]>>>;
 }) {
   const typedItems = items as Record<string, unknown>[];
 
@@ -348,7 +444,40 @@ function TableView({
       </div>
 
       {typedItems.length === 0 ? (
-        <p style={emptyStyle}>لا توجد عناصر في هذا القسم</p>
+        <div style={{ ...emptyStyle, display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+          <p>لا توجد عناصر في هذا القسم</p>
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch('/data/demo.json');
+                const demo = await res.json();
+                const data = demo[table] || [];
+                if (data.length === 0) {
+                  alert('لا توجد بيانات تجريبية لهذا القسم');
+                  return;
+                }
+                const importRes = await fetch('/api/admin/import', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ data: { [table]: data }, mode: 'merge' }),
+                });
+                if (importRes.ok) {
+                  alert(`تم تحميل ${data.length} عناصر تجريبية`);
+                  await fetch('/api/admin/stats').then(r => r.json()).then(setStats);
+                  await fetch(`/api/admin/data?table=${table}`).then(r => r.json()).then(d => setTableData(prev => ({ ...prev, [table]: d.data })));
+                } else {
+                  const err = await importRes.json();
+                  alert(`خطأ: ${err.error || 'فشل التحميل'}`);
+                }
+              } catch {
+                alert('فشل تحميل البيانات التجريبية');
+              }
+            }}
+            style={{ ...addBtnStyle, backgroundColor: '#2c7a7b', borderColor: '#2c7a7b' }}
+          >
+            تحميل بيانات تجريبية
+          </button>
+        </div>
       ) : (
         <div style={tableWrapperStyle}>
           <table style={tableStyle}>

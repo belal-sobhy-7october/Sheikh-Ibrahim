@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ccfc0cb4-1e65-482e-800d-7c7e9ca96db6",
+    "created_at": "2026-10-02T19:37:28.838Z",
+    "updated_at": "2026-10-02T19:37:28.838Z",
+    "published": true,
+    "views": 0,
+    "title": "كتاب نهائي",
+    "description": "كتاب للاختبار",
+    "cover_url": null,
+    "pdf_url": null,
+    "author": "الدكتور إبراهيم صبحي",
+    "publisher": null,
+    "year": null,
+    "pages": null,
+    "downloads": 0
+  },
+  {
+    "id": "aefdfc95-25ff-4f9f-82bf-bdb5210ce979",
+    "created_at": "2026-10-02T19:31:43.819Z",
+    "updated_at": "2026-10-02T19:31:43.819Z",
+    "published": true,
+    "views": 0,
+    "title": "كتاب اختبار",
+    "description": "وصف كتاب اختبار",
+    "cover_url": null,
+    "pdf_url": null,
+    "author": "الدكتور إبراهيم صبحي",
+    "publisher": null,
+    "year": null,
+    "pages": null,
+    "downloads": 0
+  },
+  {
+    "id": "030b8f2f-a5a4-4659-bfe3-e4ed3bd7bc41",
+    "created_at": "2026-10-02T19:29:14.130Z",
+    "updated_at": "2026-10-02T19:29:14.130Z",
+    "published": true,
+    "views": 0,
+    "title": "كتاب اختبار",
+    "description": "وصف كتاب اختبار",
+    "cover_url": null,
+    "pdf_url": null,
+    "author": "الدكتور إبراهيم صبحي",
+    "publisher": null,
+    "year": null,
+    "pages": null,
+    "downloads": 0
+  }
+]
