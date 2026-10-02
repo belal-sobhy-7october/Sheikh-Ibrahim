@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySessionToken, AUTH_COOKIE_NAME } from '@/lib/auth';
-import { counts, latest } from '@/lib/content-store/store';
+import { getAllData } from '@/lib/content-store/store';
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -12,7 +12,11 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const [countsData, latestItems] = await Promise.all([counts(), latest()]);
+  const data = await getAllData();
 
-  return NextResponse.json({ counts: countsData, latestItems });
+  const headers = new Headers();
+  headers.set('Content-Disposition', `attachment; filename="backup-${new Date().toISOString().split('T')[0]}.json"`);
+  headers.set('Content-Type', 'application/json');
+
+  return new NextResponse(JSON.stringify(data, null, 2), { headers });
 }

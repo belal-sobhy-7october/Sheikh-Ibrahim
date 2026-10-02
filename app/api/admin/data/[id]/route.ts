@@ -1,66 +1,140 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { verifySessionToken, AUTH_COOKIE_NAME } from '@/lib/auth';
+import { update, remove, VALID_TABLES, type TableName } from '@/lib/content-store/store';
+import { revalidatePath } from 'next/cache';
 
-const VALID_TABLES = ["lectures", "sermons", "books", "articles"];
+function assertTable(table: string): asserts table is TableName {
+  if (!VALID_TABLES.includes(table as TableName)) {
+    throw new Error('Invalid table');
+  }
+}
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+function revalidateAllPaths() {
+  const paths = [
+    '/',
+    '/articles', '/articles/[id]',
+    '/books', '/books/[id]',
+    '/lectures', '/lectures/[id]',
+    '/sermons', '/sermons/[id]',
+  ];
+  for (const path of paths) {
+    const type = path.includes('[id]') ? 'page' : undefined;
+    revalidatePath(path, type);
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const cookieStore = await cookies();
-  if (cookieStore.get("admin_session")?.value !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = cookieStore.get(AUTH_COOKIE_NAME);
+  const result = session?.value ? verifySessionToken(session.value) : { valid: false };
+
+  if (!result.valid) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { id } = await params;
   const body = await request.json();
   const { table, ...fields } = body;
 
-  if (!table || !VALID_TABLES.includes(table)) {
-    return NextResponse.json({ error: "Invalid table" }, { status: 400 });
+  if (!table) {
+    return NextResponse.json({ error: 'Invalid table' }, { status: 400 });
+  }
+  assertTable(table);
+
+  // Handle tags for articles
+  if (table === 'articles' && typeof fields.tags === 'string') {
+    fields.tags = fields.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
-
-  const { data, error } = await supabase
-    .from(table)
-    .update({ ...fields, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // Handle media_url for lectures/sermons
+  if ((table === 'lectures' || table === 'sermons') && fields.media_url) {
+    const url = fields.media_url as string;
+    if (/(?:youtube\.com|youtu\.be)/.test(url)) {
+      fields.youtube_url = url;
+      fields.audio_url = null;
+    } else {
+      fields.audio_url = url;
+      fields.youtube_url = null;
+    }
+    delete fields.media_url;
   }
 
-  return NextResponse.json({ data });
+  // Remove fields not applicable to specific tables
+  if (table === 'lectures') {
+    delete fields.duration;
+  }
+  if (table === 'sermons') {
+    delete fields.sermon_date;
+    delete fields.location;
+  }
+
+  try {
+    const updated = await update(table, id, fields);
+
+    if (!updated) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    // Revalidate affected public paths
+    revalidateAllPaths();
+    revalidatePath(`/${table}/${id}`, 'page');
+
+    return NextResponse.json({ data: updated });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'WRITE_DISABLED: edits must be made locally and pushed') {
+      return NextResponse.json(
+        { error: 'التعديل غير متاح في بيئة الإنتاج. يرجى التعديل محلياً ثم النشر.' },
+        { status: 403 }
+      );
+    }
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'حدث خطأ' }, { status: 500 });
+  }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const cookieStore = await cookies();
-  if (cookieStore.get("admin_session")?.value !== "authenticated") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = cookieStore.get(AUTH_COOKIE_NAME);
+  const result = session?.value ? verifySessionToken(session.value) : { valid: false };
+
+  if (!result.valid) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { id } = await params;
   const { searchParams } = new URL(request.url);
-  const table = searchParams.get("table");
+  const table = searchParams.get('table');
 
-  if (!table || !VALID_TABLES.includes(table)) {
-    return NextResponse.json({ error: "Invalid table" }, { status: 400 });
+  if (!table) {
+    return NextResponse.json({ error: 'Invalid table' }, { status: 400 });
   }
+  assertTable(table);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
+  try {
+    const deleted = await remove(table, id);
 
-  const { error } = await supabase.from(table).delete().eq("id", id);
+    if (!deleted) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Revalidate affected public paths
+    revalidateAllPaths();
+    revalidatePath(`/${table}/${id}`, 'page');
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'WRITE_DISABLED: edits must be made locally and pushed') {
+      return NextResponse.json(
+        { error: 'الحذف غير متاح في بيئة الإنتاج. يرجى الحذف محلياً ثم النشر.' },
+        { status: 403 }
+      );
+    }
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'حدث خطأ' }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true });
 }

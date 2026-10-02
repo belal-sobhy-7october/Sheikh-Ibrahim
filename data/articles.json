@@ -1,0 +1,38 @@
+[
+  {
+    "id": "a1912432-2c1b-4134-af21-2387493c736d",
+    "created_at": "2026-10-02T19:37:28.895Z",
+    "updated_at": "2026-10-02T19:37:28.895Z",
+    "published": true,
+    "views": 0,
+    "title": "مقال نهائي",
+    "content": "محتوى المقال",
+    "excerpt": "مقتطف",
+    "cover_url": null,
+    "tags": []
+  },
+  {
+    "id": "a7547d97-a5b1-4628-9f49-4e81b96955e0",
+    "created_at": "2026-10-02T19:31:43.905Z",
+    "updated_at": "2026-10-02T19:31:43.905Z",
+    "published": true,
+    "views": 0,
+    "title": "مقال اختبار",
+    "content": "محتوى المقال",
+    "excerpt": "مقتطف اختبار",
+    "cover_url": null,
+    "tags": []
+  },
+  {
+    "id": "b835fb2b-c2d2-4194-a8fb-f0b66c103c94",
+    "created_at": "2026-10-02T19:29:14.296Z",
+    "updated_at": "2026-10-02T19:29:14.296Z",
+    "published": true,
+    "views": 0,
+    "title": "مقال اختبار",
+    "content": "محتوى المقال",
+    "excerpt": "مقتطف اختبار",
+    "cover_url": null,
+    "tags": []
+  }
+]

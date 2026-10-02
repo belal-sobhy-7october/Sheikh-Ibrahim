@@ -1,17 +1,17 @@
-import { supabase } from "@/lib/supabase";
-import HeroSection from "@/components/HeroSection";
-import ContentCard from "@/components/ContentCard";
-import Link from "next/link";
+import { list } from '@/lib/content-store/store';
+import HeroSection from '@/components/HeroSection';
+import ContentCard from '@/components/ContentCard';
+import Link from 'next/link';
 
 function formatDate(dateStr: string) {
   try {
-    return new Date(dateStr).toLocaleDateString("ar-SA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+    return new Date(dateStr).toLocaleDateString('ar-SA', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   } catch {
-    return "";
+    return '';
   }
 }
 
@@ -36,65 +36,64 @@ interface SectionConfig {
 
 async function fetchSection(config: SectionConfig) {
   try {
-    const { data, error } = await supabase
-      .from(config.table)
-      .select(config.select)
-      .eq("published", true)
-      .order("created_at", { ascending: false })
-      .limit(3);
-    if (error) return [];
-    return (data ?? []) as unknown as SectionItem[];
+    const { data } = await list(config.table as any, {
+      publishedOnly: true,
+      limit: 3,
+      orderBy: 'created_at',
+      orderAsc: false,
+    });
+    return data as unknown as SectionItem[];
   } catch {
     return [];
   }
 }
 
 const sectionBg = (index: number) =>
-  index % 2 === 0 ? "#0a0a0a" : "#0d0d0d";
+  index % 2 === 0 ? '#0a0a0a' : '#0d0d0d';
 
 const sectionStyle: React.CSSProperties = {
-  padding: "4rem 1.5rem",
+  padding: '4rem 1.5rem',
 };
 
 const containerStyle: React.CSSProperties = {
-  maxWidth: "1200px",
-  margin: "0 auto",
+  maxWidth: '1200px',
+  margin: '0 auto',
 };
 
 const headerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "2.5rem",
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '2.5rem',
 };
 
 const titleStyle: React.CSSProperties = {
-  fontFamily: "var(--font-amiri)",
-  fontSize: "1.75rem",
+  fontFamily: 'var(--font-amiri)',
+  fontSize: '1.75rem',
   fontWeight: 700,
-  color: "#C9A84C",
+  color: '#C9A84C',
 };
 
 const linkStyle: React.CSSProperties = {
-  fontFamily: "var(--font-noto)",
-  color: "#C9A84C",
-  textDecoration: "none",
-  fontSize: "0.95rem",
+  fontFamily: 'var(--font-noto)',
+  color: '#C9A84C',
+  textDecoration: 'none',
+  fontSize: '0.95rem',
   fontWeight: 600,
 };
 
 const gridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-  gap: "1.5rem",
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+  gap: '1.5rem',
 };
 
 const emptyStyle: React.CSSProperties = {
-  textAlign: "center",
-  color: "#666",
-  fontFamily: "var(--font-noto)",
-  fontSize: "1rem",
-  padding: "3rem 0",
+  textAlign: 'center',
+  color: '#666',
+  fontFamily: 'var(--font-noto)',
+  fontSize: '1rem',
+  padding: '3rem 0',
 };
 
 const sections: {
@@ -104,48 +103,48 @@ const sections: {
   emptyText: string;
 }[] = [
   {
-    title: "آخر المحاضرات والدروس",
+    title: 'آخر المحاضرات والدروس',
     config: {
-      table: "lectures",
-      select: "id, title, description, created_at",
-      type: "",
-      hrefPrefix: "/lectures",
+      table: 'lectures',
+      select: 'id, title, description, created_at',
+      type: '',
+      hrefPrefix: '/lectures',
     },
-    href: "/lectures",
-    emptyText: "لا توجد محاضرات بعد",
+    href: '/lectures',
+    emptyText: 'لا توجد محاضرات بعد',
   },
   {
-    title: "آخر الخطب",
+    title: 'آخر الخطب',
     config: {
-      table: "sermons",
-      select: "id, title, description, duration, created_at",
-      type: "خطبة",
-      hrefPrefix: "/sermons",
+      table: 'sermons',
+      select: 'id, title, description, duration, created_at',
+      type: 'خطبة',
+      hrefPrefix: '/sermons',
     },
-    href: "/sermons",
-    emptyText: "لا توجد خطب بعد",
+    href: '/sermons',
+    emptyText: 'لا توجد خطب بعد',
   },
   {
-    title: "آخر المقالات",
+    title: 'آخر المقالات',
     config: {
-      table: "articles",
-      select: "id, title, excerpt, cover_url, created_at",
-      type: "مقال",
-      hrefPrefix: "/articles",
+      table: 'articles',
+      select: 'id, title, excerpt, cover_url, created_at',
+      type: 'مقال',
+      hrefPrefix: '/articles',
     },
-    href: "/articles",
-    emptyText: "لا توجد مقالات بعد",
+    href: '/articles',
+    emptyText: 'لا توجد مقالات بعد',
   },
   {
-    title: "المؤلفات المميزة",
+    title: 'المؤلفات المميزة',
     config: {
-      table: "books",
-      select: "id, title, description, cover_url, created_at",
-      type: "كتاب",
-      hrefPrefix: "/books",
+      table: 'books',
+      select: 'id, title, description, cover_url, created_at',
+      type: 'كتاب',
+      hrefPrefix: '/books',
     },
-    href: "/books",
-    emptyText: "لا توجد كتب بعد",
+    href: '/books',
+    emptyText: 'لا توجد كتب بعد',
   },
 ];
 
@@ -155,8 +154,8 @@ function renderSectionCard(
   config: SectionConfig,
 ) {
   const typeLabel =
-    sectionTitle === "آخر المحاضرات والدروس"
-      ? "محاضرة"
+    sectionTitle === 'آخر المحاضرات والدروس'
+      ? 'محاضرة'
       : config.type;
 
   const shared = {
@@ -167,7 +166,7 @@ function renderSectionCard(
   };
 
   switch (config.table) {
-    case "lectures":
+    case 'lectures':
       return (
         <ContentCard
           key={item.id}
@@ -175,7 +174,7 @@ function renderSectionCard(
           description={item.description || undefined}
         />
       );
-    case "sermons":
+    case 'sermons':
       return (
         <ContentCard
           key={item.id}
@@ -184,7 +183,7 @@ function renderSectionCard(
           duration={item.duration || undefined}
         />
       );
-    case "articles":
+    case 'articles':
       return (
         <ContentCard
           key={item.id}
@@ -193,7 +192,7 @@ function renderSectionCard(
           thumbnailUrl={item.cover_url || undefined}
         />
       );
-    case "books":
+    case 'books':
       return (
         <ContentCard
           key={item.id}
